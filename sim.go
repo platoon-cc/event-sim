@@ -1,4 +1,4 @@
-package main
+package sim
 
 import (
 	"encoding/json"
@@ -6,8 +6,6 @@ import (
 	"math/rand"
 	"time"
 )
-
-type simulator struct{}
 
 type eventPayload map[string]any
 
@@ -259,8 +257,9 @@ func (s *session_context) begin() {
 	s.userId = fmt.Sprintf("STEAM#%d", s.bucket)
 	s.sim_identify()
 	s.addEvent("$sessionBegin", eventPayload{
-		"steam_branch": "beta",
-		"version":      "0.1.4937",
+		"branch":  "beta",
+		"vendor":  "steam",
+		"version": "0.1.4937",
 	})
 	s.addEvent("$uiScreen", eventPayload{
 		"name": "welcome",
@@ -281,7 +280,7 @@ func (s *session_context) serialise() error {
 	return nil
 }
 
-func simulateForProject(numSessions int) error {
+func SimulateForProject(numSessions int) error {
 	ctx := session_context{}
 	for i := 0; i < numSessions; i++ {
 		ctx.begin()
@@ -291,11 +290,4 @@ func simulateForProject(numSessions int) error {
 		ctx.end()
 	}
 	return ctx.serialise()
-}
-
-func main() {
-	err := simulateForProject(1)
-	if err != nil {
-		panic(err)
-	}
 }
