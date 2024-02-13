@@ -1,6 +1,6 @@
 package main
 
-import sim "github.com/platoon-cc/event-sim"
+import "github.com/platoon-cc/event-sim/sim"
 
 func main() {
 	err := sim.SimulateForProject(1)

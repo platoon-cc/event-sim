@@ -5,5 +5,5 @@ Currently models event flow for Clodhoppers but will be expanded to model event 
 Run with:
 
 ```bash
-go run ./cmd/main.go
+go run .
 ```
