@@ -3,7 +3,7 @@ package sim
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"time"
 )
 
@@ -17,12 +17,12 @@ type event struct {
 }
 
 type choose_tier struct {
-	name   any
+	data   any
 	weight int
 }
 
 func chooseRand(choices []choose_tier) any {
-	return choose(rand.Intn(100), choices)
+	return choose(rand.IntN(100), choices)
 }
 
 func choose(weight int, choices []choose_tier) any {
@@ -36,7 +36,7 @@ func choose(weight int, choices []choose_tier) any {
 	for _, v := range choices {
 		run += v.weight
 		if mod_weight <= run {
-			return v.name
+			return v.data
 		}
 	}
 
@@ -67,15 +67,17 @@ type challenge struct {
 	chapter      string
 	challenge    string
 	winCondition string
+	scoreLow     int
+	scoreHigh    int
 }
 
 var challenges = []choose_tier{
-	{challenge{"1", "The Problem With AI", "It Started Here", "Hey! Stop That", "ScoreAscending"}, 10},
-	{challenge{"2", "The Problem With AI", "It Started Here", "Hold On Clem", "TimeDescending"}, 10},
-	{challenge{"3", "The Problem With AI", "It Started Here", "Big Mac's Mill", "TimeDescending"}, 10},
-	{challenge{"11", "The Problem With AI", "Robots Have Rights", "Returning Home", "TimeDescending"}, 10},
-	{challenge{"12", "The Problem With AI", "Robots Have Rights", "Under Warranty", "TimeDescending"}, 10},
-	{challenge{"13", "The Problem With AI", "Robots Have Rights", "How Many?", "TimeDescending"}, 10},
+	{challenge{"1", "The Problem With AI", "It Started Here", "Hey! Stop That", "Descending", 0, 10}, 10},
+	{challenge{"2", "The Problem With AI", "It Started Here", "Hold On Clem", "Ascending", 20, 200}, 10},
+	{challenge{"3", "The Problem With AI", "It Started Here", "Big Mac's Mill", "Ascending", 25, 200}, 10},
+	{challenge{"11", "The Problem With AI", "Robots Have Rights", "Returning Home", "Ascending", 30, 200}, 10},
+	{challenge{"12", "The Problem With AI", "Robots Have Rights", "Under Warranty", "Ascending", 30, 200}, 10},
+	{challenge{"13", "The Problem With AI", "Robots Have Rights", "How Many?", "Ascending", 30, 200}, 10},
 }
 
 var locations = []choose_tier{
@@ -137,7 +139,7 @@ func (s *session_context) sim_identify() {
 }
 
 func (s *session_context) sim_settings() {
-	if rand.Intn(100) < 30 {
+	if rand.IntN(100) < 30 {
 		s.addEvent("$uiScreen", eventPayload{
 			"name": "settings",
 			"tab":  "game config",
@@ -153,7 +155,7 @@ func (s *session_context) sim_settings() {
 }
 
 func (s *session_context) sim_tutorial() {
-	if rand.Intn(100) < 10 {
+	if rand.IntN(100) < 10 {
 		s.addEvent("$tutorialBegin", nil)
 		s.addEvent("$tutorialStep", eventPayload{
 			"step": 1,
@@ -172,7 +174,7 @@ func (s *session_context) sim_tutorial() {
 }
 
 func (s *session_context) sim_customise(homeScreen string) {
-	if rand.Intn(100) < 30 {
+	if rand.IntN(100) < 30 {
 		// sim the character select screen
 		s.addEvent("$uiScreen", eventPayload{
 			"name": "customise",
@@ -191,7 +193,7 @@ func (s *session_context) sim_game_battle_arena(homeScreen string) {
 	s.sim_customise(homeScreen)
 
 	_type := chooseRand(battle_arena)
-	length := rand.Intn(4)*2 + 1
+	length := rand.IntN(4)*2 + 1
 
 	s.addEvent("$uiScreen", eventPayload{
 		"name": "game mode",
@@ -204,7 +206,7 @@ func (s *session_context) sim_game_battle_arena(homeScreen string) {
 		"length": length,
 	})
 
-	numPlayers := rand.Intn(2) + 2
+	numPlayers := rand.IntN(2) + 2
 
 	for i := 0; i < length; i++ {
 		location := chooseRand(locations)
@@ -224,7 +226,7 @@ func (s *session_context) sim_game_battle_arena(homeScreen string) {
 				player = append(player, fmt.Sprintf("player%d", i+1))
 			}
 
-			score = append(score, rand.Intn(600)*50)
+			score = append(score, rand.IntN(600)*50)
 
 			//    numDeath := rand.IntN(5)
 			// numBanana := 0
@@ -250,53 +252,51 @@ func (s *session_context) sim_game_battle_arena(homeScreen string) {
 }
 
 func (s *session_context) sim_challenge(homeScreen string) {
-	_type := chooseRand(battle_arena)
-	length := rand.Intn(4)*2 + 1
+	chal := chooseRand(challenges).(challenge)
 
-	s.addEvent("$uiScreen", eventPayload{
-		"name": "game mode",
+	fmt.Printf("%v\n", chal)
+
+	score := rand.IntN(chal.scoreHigh-chal.scoreLow) + chal.scoreLow
+
+	s.addEventT(1, "challengeEnd", eventPayload{
+		"guid":  chal.guid,
+		"name":  chal.challenge,
+		"score": score,
 	})
 	s.addEvent("$uiScreen", eventPayload{
 		"name": homeScreen,
 	})
-	s.addEvent("$gameBegin", eventPayload{
-		"type":   _type,
-		"length": length,
-	})
 
-	numPlayers := rand.Intn(2) + 2
+	// s.addEvent("challengeBegin", eventPayload{
+	// 	"type":   _type,
+	// })
 
-	for i := 0; i < length; i++ {
-		location := chooseRand(locations)
-		s.addEventT(3, "levelBegin", eventPayload{
-			"name": location,
-		})
-
-		player := []string{}
-		score := []int{}
-
-		for i := 0; i < numPlayers; i++ {
-			if i == 0 {
-				player = append(player, s.userId)
-			} else {
-				player = append(player, fmt.Sprintf("player%d", i+1))
-			}
-
-			score = append(score, rand.Intn(600)*50)
-		}
-
-		s.addEventT(30+rand.Float32()*30, "levelEnd", eventPayload{
-			"player": player,
-			"score":  score,
-			// "death":  death,
-			// "banana": banana,
-		})
-	}
-
-	s.addEventT(1, "$gameEnd", nil)
-	s.addEvent("$uiScreen", eventPayload{
-		"name": homeScreen,
-	})
+	// for i := 0; i < length; i++ {
+	// 	location := chooseRand(locations)
+	// 	s.addEventT(3, "levelBegin", eventPayload{
+	// 		"name": location,
+	// 	})
+	//
+	// 	player := []string{}
+	// 	score := []int{}
+	//
+	// 	for i := 0; i < numPlayers; i++ {
+	// 		if i == 0 {
+	// 			player = append(player, s.userId)
+	// 		} else {
+	// 			player = append(player, fmt.Sprintf("player%d", i+1))
+	// 		}
+	//
+	// 		score = append(score, rand.Intn(600)*50)
+	// 	}
+	//
+	// 	s.addEventT(30+rand.Float32()*30, "levelEnd", eventPayload{
+	// 		"player": player,
+	// 		"score":  score,
+	// 		// "death":  death,
+	// 		// "banana": banana,
+	// 	})
+	// }
 }
 
 func (s *session_context) sim_home() {
@@ -304,12 +304,17 @@ func (s *session_context) sim_home() {
 		"name": "home",
 	})
 
-	switch val := rand.Intn(100); {
-	case val < 50:
-		numGames := rand.Intn(4) + 1
-		for i := 0; i < numGames; i++ {
-			s.sim_game_battle_arena("home")
+	switch val := rand.IntN(100); {
+	case val < 100:
+		numChallenges := rand.IntN(8) + 1
+		for i := 0; i < numChallenges; i++ {
+			s.sim_challenge("home")
 		}
+		// case val < 50:
+		// numGames := rand.Intn(4) + 1
+		// for i := 0; i < numGames; i++ {
+		// 	s.sim_game_battle_arena("home")
+		// }
 	default:
 		s.addEvent("$uiScreen", eventPayload{
 			"name": "play online",
@@ -320,7 +325,7 @@ func (s *session_context) sim_home() {
 		s.addEvent("$uiScreen", eventPayload{
 			"name": "al's imports",
 		})
-		numGames := rand.Intn(4) + 1
+		numGames := rand.IntN(4) + 1
 		for i := 0; i < numGames; i++ {
 			s.sim_game_battle_arena("al's imports")
 		}
@@ -331,7 +336,7 @@ func (s *session_context) sim_home() {
 }
 
 func (s *session_context) begin() {
-	s.bucket = rand.Intn(100)
+	s.bucket = rand.IntN(100)
 	s.userId = fmt.Sprintf("STEAM#%d", s.bucket)
 	s.sim_identify()
 	s.addEvent("$sessionBegin", eventPayload{
