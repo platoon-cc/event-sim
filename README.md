@@ -1,9 +1,4 @@
-# Platoon Event Sim
+# Platoon CLI
 
-Currently models event flow for Clodhoppers but will be expanded to model event flow for any game.
+TODO
 
-Run with:
-
-```bash
-go run ./cmd
-```
