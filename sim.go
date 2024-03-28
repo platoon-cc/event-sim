@@ -72,12 +72,12 @@ type challenge struct {
 }
 
 var challenges = []choose_tier{
-	{challenge{"1", "The Problem With AI", "It Started Here", "Hey! Stop That", "Descending", 0, 10}, 10},
-	{challenge{"2", "The Problem With AI", "It Started Here", "Hold On Clem", "Ascending", 20, 200}, 10},
-	{challenge{"3", "The Problem With AI", "It Started Here", "Big Mac's Mill", "Ascending", 25, 200}, 10},
-	{challenge{"11", "The Problem With AI", "Robots Have Rights", "Returning Home", "Ascending", 30, 200}, 10},
-	{challenge{"12", "The Problem With AI", "Robots Have Rights", "Under Warranty", "Ascending", 30, 200}, 10},
-	{challenge{"13", "The Problem With AI", "Robots Have Rights", "How Many?", "Ascending", 30, 200}, 10},
+	{challenge{"1", "The Problem With AI", "It Started Here", "Hey! Stop That", "descending", 0, 10}, 10},
+	{challenge{"2", "The Problem With AI", "It Started Here", "Hold On Clem", "ascending", 20, 200}, 10},
+	{challenge{"3", "The Problem With AI", "It Started Here", "Big Mac's Mill", "ascending", 25, 200}, 10},
+	{challenge{"11", "The Problem With AI", "Robots Have Rights", "Returning Home", "ascending", 30, 200}, 10},
+	{challenge{"12", "The Problem With AI", "Robots Have Rights", "Under Warranty", "ascending", 30, 200}, 10},
+	{challenge{"13", "The Problem With AI", "Robots Have Rights", "How Many?", "ascending", 30, 200}, 10},
 }
 
 var locations = []choose_tier{
@@ -108,10 +108,11 @@ var locations = []choose_tier{
 }
 
 type session_context struct {
-	userId  string
-	events  []event
-	simTime float32
-	bucket  int
+	userId    string
+	events    []event
+	startTime time.Time
+	simTime   float32
+	bucket    int
 }
 
 func (s *session_context) addEvent(eventType string, params eventPayload) {
@@ -119,11 +120,14 @@ func (s *session_context) addEvent(eventType string, params eventPayload) {
 }
 
 func (s *session_context) addEventT(duration float32, eventType string, params eventPayload) {
+	if eventType == "$uiScreen" {
+		return
+	}
 	s.simTime += duration
 	e := event{
 		Event:     eventType,
 		UserID:    s.userId,
-		Timestamp: time.Now().Add(time.Duration(s.simTime) * time.Second).UnixMilli(),
+		Timestamp: s.startTime.Add(time.Duration(s.simTime) * time.Second).UnixMilli(),
 		Params:    params,
 	}
 
@@ -254,15 +258,17 @@ func (s *session_context) sim_game_battle_arena(homeScreen string) {
 func (s *session_context) sim_challenge(homeScreen string) {
 	chal := chooseRand(challenges).(challenge)
 
-	fmt.Printf("%v\n", chal)
-
 	score := rand.IntN(chal.scoreHigh-chal.scoreLow) + chal.scoreLow
 
-	s.addEventT(1, "challengeEnd", eventPayload{
+	s.addEventT(1, "challengeBegin", eventPayload{})
+
+	s.addEventT(30, "challengeEnd", eventPayload{
 		"guid":  chal.guid,
 		"name":  chal.challenge,
+		"sort":  chal.winCondition,
 		"score": score,
 	})
+
 	s.addEvent("$uiScreen", eventPayload{
 		"name": homeScreen,
 	})
@@ -315,6 +321,7 @@ func (s *session_context) sim_home() {
 		// for i := 0; i < numGames; i++ {
 		// 	s.sim_game_battle_arena("home")
 		// }
+
 	default:
 		s.addEvent("$uiScreen", eventPayload{
 			"name": "play online",
@@ -335,9 +342,16 @@ func (s *session_context) sim_home() {
 	}
 }
 
-func (s *session_context) begin() {
-	s.bucket = rand.IntN(100)
+func newSession(userId int, startTime time.Time) session_context {
+	s := session_context{}
+	s.bucket = userId
+	s.startTime = startTime
 	s.userId = fmt.Sprintf("STEAM#%d", s.bucket)
+	s.simTime = 0
+	return s
+}
+
+func (s *session_context) begin() {
 	s.sim_identify()
 	s.addEvent("$sessionBegin", eventPayload{
 		"branch":  "developer",
@@ -353,24 +367,31 @@ func (s *session_context) end() {
 	s.addEvent("$sessionEnd", nil)
 }
 
-func (s *session_context) serialise() error {
-	r, err := json.MarshalIndent(s.events, "", "  ")
+// func (s *session_context) serialise() error {
+// 	r, err := json.MarshalIndent(s.events, "", "  ")
+// 	// r, err := json.Marshal(s.events)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	fmt.Printf("%s", string(r))
+// 	return nil
+// }
+
+func Serialise(events []event) (string, error) {
+	r, err := json.MarshalIndent(events, "", "  ")
 	// r, err := json.Marshal(s.events)
 	if err != nil {
-		return err
+		return "", err
 	}
-	fmt.Printf("%s", string(r))
-	return nil
+	return string(r), nil
 }
 
-func SimulateForProject(numSessions int) error {
-	ctx := session_context{}
-	for i := 0; i < numSessions; i++ {
-		ctx.begin()
-		ctx.sim_settings()
-		ctx.sim_tutorial()
-		ctx.sim_home()
-		ctx.end()
-	}
-	return ctx.serialise()
+func SimulateSessionForUser(userId int, startTime time.Time) []event {
+	ctx := newSession(userId, startTime)
+	ctx.begin()
+	ctx.sim_settings()
+	// ctx.sim_tutorial()
+	ctx.sim_home()
+	ctx.end()
+	return ctx.events
 }
