@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/platoon-cc/platoon-cli/settings"
+	"github.com/platoon-cc/platoon-cli/internal/settings"
 	"github.com/spf13/cobra"
 )
 

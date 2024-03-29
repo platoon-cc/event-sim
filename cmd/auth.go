@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	"github.com/pkg/browser"
-	"github.com/platoon-cc/platoon-cli/settings"
-	"github.com/platoon-cc/platoon-cli/utils"
+	"github.com/platoon-cc/platoon-cli/internal/settings"
+	"github.com/platoon-cc/platoon-cli/internal/utils"
 	"github.com/spf13/cobra"
 )
 

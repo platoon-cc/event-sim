@@ -3,32 +3,62 @@ package client
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"path"
 
-	"github.com/platoon-cc/platoon-cli/settings"
+	"github.com/platoon-cc/platoon-cli/internal/model"
+	"github.com/platoon-cc/platoon-cli/internal/settings"
 )
+
+var CacheDuration int64 = 30 * 60
 
 type Client struct {
 	url   string
 	token string
 }
 
-func New() *Client {
+func New(token string) *Client {
 	c := &Client{
-		url: "http://pl.localhost:9999/cli",
+		token: token,
+		url:   "http://pl.localhost:9999/cli",
 	}
-	c.token = settings.GetAuthToken()
 
 	return c
 }
 
-func (c *Client) OrgList() {
-	resp, status, err := c.serverGet("org")
-	fmt.Printf("%s %d %v\n", string(resp), status, err)
+func (c *Client) GetTeamList() ([]model.Team, error) {
+	teams, err := settings.GetCache[[]model.Team]("team")
+	if errors.Is(err, settings.ErrExpired) {
+		resp, _, err := c.serverGet("team")
+		if err != nil {
+			return nil, err
+		}
+		json.Unmarshal(resp, &teams)
+		settings.SetCache("team", teams)
+	} else if err != nil {
+		return teams, err
+	}
+	return teams, nil
+}
+
+func (c *Client) GetProjectList() ([]model.Project, error) {
+	projects, err := settings.GetCache[[]model.Project]("project")
+	if errors.Is(err, settings.ErrExpired) {
+		teamId := settings.GetActive("team")
+		resp, _, err := c.serverGet("team/" + teamId + "/project")
+		if err != nil {
+			return nil, err
+		}
+		json.Unmarshal(resp, &projects)
+		settings.SetCache("project", projects)
+	} else if err != nil {
+		return projects, err
+	}
+	return projects, nil
 }
 
 func (c *Client) makeUrl(endpoint string) string {
