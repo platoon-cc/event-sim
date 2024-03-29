@@ -9,7 +9,7 @@ import (
 
 type Payload map[string]any
 
-type event struct {
+type Event struct {
 	Params    Payload `json:"params,omitempty"`
 	Event     string  `json:"event"`
 	UserID    string  `json:"user_id"`
@@ -110,7 +110,7 @@ var locations = []choose_tier{
 type session_context struct {
 	startTime time.Time
 	userId    string
-	events    []event
+	events    []Event
 	simTime   float32
 	bucket    int
 }
@@ -124,7 +124,7 @@ func (s *session_context) addEventT(duration float32, eventType string, params P
 		return
 	}
 	s.simTime += duration
-	e := event{
+	e := Event{
 		Event:     eventType,
 		UserID:    s.userId,
 		Timestamp: s.startTime.Add(time.Duration(s.simTime) * time.Second).UnixMilli(),
@@ -377,7 +377,7 @@ func (s *session_context) end() {
 // 	return nil
 // }
 
-func Serialise(events []event) (string, error) {
+func Serialise(events []Event) (string, error) {
 	r, err := json.MarshalIndent(events, "", "  ")
 	// r, err := json.Marshal(s.events)
 	if err != nil {
@@ -386,7 +386,7 @@ func Serialise(events []event) (string, error) {
 	return string(r), nil
 }
 
-func SimulateSessionForUser(userId int, startTime time.Time) []event {
+func SimulateSessionForUser(userId int, startTime time.Time) []Event {
 	ctx := newSession(userId, startTime)
 	ctx.begin()
 	ctx.sim_settings()

@@ -1,53 +1,48 @@
 package cmd
 
-// func call(req *http.Request) ([]byte, int, error) {
-// 	req.Header.Add("X-API-KEY", "plt_pOh1xjmIEDfE68zgFr7djsc2rvzjSMotlo2ZIJXdA")
-// 	res, err := http.DefaultClient.Do(req)
-// 	if err != nil {
-// 		return nil, 0, err
-// 	}
-//
-// 	defer res.Body.Close()
-// 	body, err := io.ReadAll(res.Body)
-// 	if err != nil {
-// 		return nil, res.StatusCode, err
-// 	}
-//
-// 	// var response map[string]any
-// 	// if err := json.Unmarshal(body, &response); err != nil {
-// 	// 	return nil, 0, err
-// 	// }
-//
-// 	return body, res.StatusCode, nil
-// }
-//
-// func callPost(url string, data any) ([]byte, int, error) {
-// 	payload, err := json.Marshal(data)
-// 	if err != nil {
-// 		return nil, 0, err
-// 	}
-//
-// 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
-// 	if err != nil {
-// 		return nil, 0, err
-// 	}
-// 	return call(req)
-// }
-//
-// func main() {
-// 	// err := sim.SimulateForProject(1)
-// 	// if err != nil {
-// 	// 	panic(err)
-// 	// }
-//
-// 	startTime := time.Now()
-// 	for i := range 10 {
-// 		events := sim.SimulateSessionForUser(i, startTime)
-// 		resp, status, err := callPost("http://pl.localhost:9999/api/ingest", events)
-//
-// 		if err == nil {
-// 			fmt.Printf("status %d - resp: %v\n", status, resp)
-// 		}
-//
-// 	}
-// }
+import (
+	"fmt"
+	"time"
+
+	"github.com/platoon-cc/platoon-cli/internal/client"
+	"github.com/platoon-cc/platoon-cli/internal/sim"
+	"github.com/spf13/cobra"
+)
+
+func init() {
+	parentCmd := &cobra.Command{
+		Use: "sim",
+	}
+
+	rootCmd.AddCommand(parentCmd)
+
+	runCmd := &cobra.Command{
+		Use: "run",
+
+		RunE: func(cmd *cobra.Command, args []string) error {
+			startTime := time.Now()
+			for i := range 10 {
+				events := sim.SimulateSessionForUser(i, startTime)
+				res, err := sim.Serialise(events)
+				if err != nil {
+					return err
+				}
+
+				fmt.Println(res)
+
+				if send, err := cmd.Flags().GetBool("send"); err != nil {
+					return err
+				} else if send {
+					platoon := client.New()
+					err := platoon.PostSimEvents(events)
+					if err != nil {
+						return err
+					}
+				}
+			}
+			return nil
+		},
+	}
+	runCmd.Flags().BoolP("send", "s", false, "whether to send the events to be ingested by the server")
+	parentCmd.AddCommand(runCmd)
+}

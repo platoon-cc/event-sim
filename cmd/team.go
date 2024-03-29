@@ -14,18 +14,18 @@ func init() {
 
 	rootCmd.AddCommand(teamCmd)
 	teamCmd.AddCommand(&cobra.Command{
-		Use: "choose",
+		Use: "select",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			key := "team"
-			activeTeam := settings.GetActive("team")
+			activeTeam, _ := settings.GetActive("team")
 
-			platoon := client.New(settings.GetAuthToken())
+			platoon := client.New()
 			teams, err := platoon.GetTeamList()
 			if err != nil {
 				return err
 			}
 
-			list := ui.NewList("Choose Active Team")
+			list := ui.NewList("Select Active Team")
 			for _, t := range teams {
 				list.AddItem(t.Id, t.Name, t.Id == activeTeam)
 			}

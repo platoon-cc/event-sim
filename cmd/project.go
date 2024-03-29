@@ -14,18 +14,18 @@ func init() {
 
 	rootCmd.AddCommand(projectCmd)
 	projectCmd.AddCommand(&cobra.Command{
-		Use: "choose",
+		Use: "select",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			key := "project"
-			activeProject := settings.GetActive(key)
+			activeProject, _ := settings.GetActive(key)
 
-			platoon := client.New(settings.GetAuthToken())
+			platoon := client.New()
 			projects, err := platoon.GetProjectList()
 			if err != nil {
 				return err
 			}
 
-			list := ui.NewList("Choose Active Project")
+			list := ui.NewList("Select Active Project")
 			for _, t := range projects {
 				list.AddItem(t.Id, t.Name, t.Id == activeProject)
 			}

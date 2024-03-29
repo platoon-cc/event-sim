@@ -14,8 +14,12 @@ import (
 )
 
 var (
-	Konfig       *koanf.Koanf
-	settingsFile string
+	Konfig        *koanf.Koanf
+	settingsFile  string
+	CacheDuration int64 = 30 * 60
+
+	ErrNotFound = errors.New("not found")
+	ErrExpired  = errors.New("cache entry expired")
 )
 
 func Config() {
@@ -35,11 +39,6 @@ func Config() {
 		os.Exit(1)
 	}
 }
-
-var (
-	CacheDuration int64 = 30 * 60
-	ErrExpired          = errors.New("cache entry expired")
-)
 
 type CacheEntry[T any] struct {
 	Data       T     `json:"data"`
@@ -68,8 +67,12 @@ func ClearCache(key string) {
 	Konfig.Delete("cache." + key)
 }
 
-func GetActive(key string) string {
-	return Konfig.String("active." + key)
+func GetActive(key string) (string, error) {
+	val := Konfig.Get("active." + key)
+	if val == nil {
+		return "", ErrNotFound
+	}
+	return val.(string), nil
 }
 
 func SetActive(key string, value string) {
