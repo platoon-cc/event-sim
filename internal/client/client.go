@@ -35,7 +35,7 @@ func New() *Client {
 func (c *Client) GetTeamList() ([]model.Team, error) {
 	teams, err := settings.GetCache[[]model.Team]("team")
 	if errors.Is(err, settings.ErrExpired) {
-		resp, _, err := c.serverGet("team")
+		resp, _, err := c.serverGet("team", "")
 		if err != nil {
 			return nil, err
 		}
@@ -54,7 +54,7 @@ func (c *Client) GetProjectList() ([]model.Project, error) {
 		if err != nil {
 			return nil, err
 		}
-		resp, _, err := c.serverGet("team/" + teamId + "/project")
+		resp, _, err := c.serverGet("team/"+teamId+"/project", "")
 		if err != nil {
 			return nil, err
 		}
@@ -66,8 +66,9 @@ func (c *Client) GetProjectList() ([]model.Project, error) {
 	return projects, nil
 }
 
-func (c *Client) GetEvents(projectId string) ([]model.Event, error) {
-	resp, _, err := c.serverGet(fmt.Sprintf("project/%s/events", projectId))
+func (c *Client) GetEvents(projectId string, lastId int64) ([]model.Event, error) {
+	resp, _, err := c.serverGet(fmt.Sprintf("project/%s/events", projectId), fmt.Sprintf("from=%d", lastId))
+	// resp, _, err := c.serverGet(fmt.Sprintf("project/%s/events", projectId))
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +90,7 @@ func (c *Client) GetAccessToken() (string, error) {
 	accessToken, err := settings.GetCache[string](cacheKey)
 
 	if errors.Is(err, settings.ErrExpired) {
-		resp, _, err := c.serverGet(fmt.Sprintf("project/%s/accessToken", projectId))
+		resp, _, err := c.serverGet(fmt.Sprintf("project/%s/accessToken", projectId), "")
 		if err != nil {
 			return accessToken, err
 		}
@@ -107,7 +108,7 @@ func (c *Client) PostSimEvents(events []model.Event) error {
 		return err
 	}
 	c.publicToken = token
-	_, _, err = c.serverPost("/api/ingest", events)
+	_, _, err = c.serverPost("/api/ingest", events, "")
 	return err
 }
 
@@ -120,23 +121,25 @@ func (c *Client) makeUrl(endpoint string) string {
 	return u.String()
 }
 
-func (c *Client) serverGet(endpoint string) ([]byte, int, error) {
-	return c.call("GET", endpoint, nil)
+func (c *Client) serverGet(endpoint string, query string) ([]byte, int, error) {
+	return c.call("GET", endpoint, nil, query)
 }
 
-func (c *Client) serverPost(endpoint string, data any) ([]byte, int, error) {
+func (c *Client) serverPost(endpoint string, data any, query string) ([]byte, int, error) {
 	payload, err := json.Marshal(data)
 	if err != nil {
 		return nil, 0, err
 	}
-	return c.call("POST", endpoint, bytes.NewBuffer(payload))
+	return c.call("POST", endpoint, bytes.NewBuffer(payload), query)
 }
 
-func (c *Client) call(verb string, endpoint string, body io.Reader) ([]byte, int, error) {
+func (c *Client) call(verb string, endpoint string, body io.Reader, query string) ([]byte, int, error) {
 	req, err := http.NewRequest(verb, c.makeUrl(endpoint), body)
 	if err != nil {
 		return nil, 0, err
 	}
+
+	req.URL.RawQuery = query
 
 	if c.publicToken != "" {
 		req.Header.Add("X-API-KEY", c.publicToken)

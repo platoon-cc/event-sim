@@ -117,7 +117,12 @@ func (p *Processor) Query() error {
 
 func (p *Processor) GetPeakEventId() (int64, error) {
 	row := p.db.QueryRow("select max(id) from events;")
-	var res int64
+	var res any
 	err := row.Scan(&res)
-	return res, err
+	switch res.(type) {
+	case nil:
+		return 0, err
+	default:
+		return res.(int64), err
+	}
 }

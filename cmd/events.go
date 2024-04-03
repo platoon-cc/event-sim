@@ -20,17 +20,23 @@ func init() {
 			if err != nil {
 				return err
 			}
-			platoon := client.New()
-			events, err := platoon.GetEvents(projectId)
-			if err != nil {
-				return err
-			}
-
 			processor, err := processor.New(projectId)
 			if err != nil {
 				return err
 			}
 			defer processor.Close()
+
+			eventId, err := processor.GetPeakEventId()
+			if err != nil {
+				return err
+			}
+
+			platoon := client.New()
+			events, err := platoon.GetEvents(projectId, eventId)
+			if err != nil {
+				return err
+			}
+
 			return processor.StoreEvents(events, 0)
 		},
 	})
