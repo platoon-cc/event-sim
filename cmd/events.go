@@ -1,10 +1,9 @@
 package cmd
 
 import (
-	"fmt"
-	"time"
-
 	"github.com/platoon-cc/platoon-cli/internal/client"
+	"github.com/platoon-cc/platoon-cli/internal/processor"
+	"github.com/platoon-cc/platoon-cli/internal/settings"
 	"github.com/spf13/cobra"
 )
 
@@ -15,18 +14,24 @@ func init() {
 
 	rootCmd.AddCommand(eventsCmd)
 	eventsCmd.AddCommand(&cobra.Command{
-		Use: "get",
+		Use: "ingest",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			platoon := client.New()
-			events, err := platoon.GetEvents()
+			projectId, err := settings.GetActive("project")
 			if err != nil {
 				return err
 			}
-			for _, e := range events {
-				t := time.UnixMilli(e.Timestamp).Format("2006/01/02 15:04")
-				fmt.Printf("%d %s %s \t%s \t%v\n", e.Id, t, e.UserId, e.Event, e.Params)
+			platoon := client.New()
+			events, err := platoon.GetEvents(projectId)
+			if err != nil {
+				return err
 			}
-			return nil
+
+			processor, err := processor.New(projectId)
+			if err != nil {
+				return err
+			}
+			defer processor.Close()
+			return processor.StoreEvents(events, 0)
 		},
 	})
 }

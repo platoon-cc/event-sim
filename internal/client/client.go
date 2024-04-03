@@ -12,7 +12,6 @@ import (
 
 	"github.com/platoon-cc/platoon-cli/internal/model"
 	"github.com/platoon-cc/platoon-cli/internal/settings"
-	"github.com/platoon-cc/platoon-cli/internal/sim"
 )
 
 var CacheDuration int64 = 30 * 60
@@ -67,12 +66,7 @@ func (c *Client) GetProjectList() ([]model.Project, error) {
 	return projects, nil
 }
 
-func (c *Client) GetEvents() ([]model.Event, error) {
-	projectId, err := settings.GetActive("project")
-	if err != nil {
-		return nil, err
-	}
-
+func (c *Client) GetEvents(projectId string) ([]model.Event, error) {
 	resp, _, err := c.serverGet(fmt.Sprintf("project/%s/events", projectId))
 	if err != nil {
 		return nil, err
@@ -107,7 +101,7 @@ func (c *Client) GetAccessToken() (string, error) {
 	return accessToken, nil
 }
 
-func (c *Client) PostSimEvents(events []sim.Event) error {
+func (c *Client) PostSimEvents(events []model.Event) error {
 	token, err := c.GetAccessToken()
 	if err != nil {
 		return err

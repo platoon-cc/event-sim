@@ -8,15 +8,14 @@ import (
 )
 
 func init() {
-	teamCmd := &cobra.Command{
-		Use: "team",
+	configCmd := &cobra.Command{
+		Use: "config",
 	}
 
-	rootCmd.AddCommand(teamCmd)
-	teamCmd.AddCommand(&cobra.Command{
-		Use: "select",
+	rootCmd.AddCommand(configCmd)
+	configCmd.AddCommand(&cobra.Command{
+		Use: "all",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			key := "team"
 			activeTeam, _ := settings.GetActive("team")
 
 			platoon := client.New()
@@ -30,11 +29,29 @@ func init() {
 				list.AddItem(t.Id, t.Name, t.Id == activeTeam)
 			}
 
-			return list.Run(
+			err = list.Run(
 				func(i ui.ListItem) {
 					settings.ClearCache("project")
 					settings.ClearActive("project")
-					settings.SetActive(key, i.Key)
+					settings.SetActive("team", i.Key)
+				})
+			if err != nil {
+				return err
+			}
+
+			activeProject, _ := settings.GetActive("project")
+			projects, err := platoon.GetProjectList()
+			if err != nil {
+				return err
+			}
+			list = ui.NewList("Select Active Project")
+			for _, t := range projects {
+				list.AddItem(t.Id, t.Name, t.Id == activeProject)
+			}
+
+			return list.Run(
+				func(i ui.ListItem) {
+					settings.SetActive("project", i.Key)
 				})
 		},
 	})

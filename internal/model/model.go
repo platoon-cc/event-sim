@@ -16,6 +16,13 @@ type Project struct {
 	Name string
 }
 
+// type Event struct {
+// 	Params    model.Params `json:"params,omitempty"`
+// 	Event     string       `json:"event"`
+// 	UserId    string       `json:"user_id"`
+// 	Timestamp int64        `json:"timestamp"`
+// }
+
 type Event struct {
 	Params    Params `json:"params"`
 	UserId    string `json:"user_id"`
