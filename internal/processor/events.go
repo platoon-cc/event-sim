@@ -43,7 +43,7 @@ func openDatabase(key string) (*sql.DB, error) {
 	migrate := `
 CREATE TABLE IF NOT EXISTS events (
   id INTEGER PRIMARY KEY,
-  event_type TEXT,
+  event TEXT,
   user_id TEXT,
   timestamp INTEGER,
   payload JSON
@@ -74,7 +74,7 @@ func New(key string) (*Processor, error) {
 
 	p.db = db
 
-	p.insert_stmt, err = p.db.Prepare(`INSERT INTO events (id,event_type,user_id,timestamp,payload) VALUES (?,?,?,?,?)`)
+	p.insert_stmt, err = p.db.Prepare(`INSERT INTO events (id,event,user_id,timestamp,payload) VALUES (?,?,?,?,?)`)
 	if err != nil {
 		return nil, err
 	}
@@ -90,8 +90,8 @@ func (p *Processor) StoreEvents(events []model.Event, idOffset int64) error {
 	for _, e := range events {
 		eventId := idOffset + e.Id
 		t := time.UnixMilli(e.Timestamp).Format("2006/01/02 15:04")
-		fmt.Printf("%d %s %s \t%s \t%v\n", eventId, t, e.UserId, e.EventType, e.Payload)
-		if _, err := p.insert_stmt.Exec(eventId, e.EventType, e.UserId, e.Timestamp, e.Payload); err != nil {
+		fmt.Printf("%d %s %s \t%s \t%v\n", eventId, t, e.UserId, e.Event, e.Payload)
+		if _, err := p.insert_stmt.Exec(eventId, e.Event, e.UserId, e.Timestamp, e.Payload); err != nil {
 			return err
 		}
 	}
@@ -99,7 +99,7 @@ func (p *Processor) StoreEvents(events []model.Event, idOffset int64) error {
 }
 
 func (p *Processor) Query() error {
-	rows, err := p.db.Query(`select payload ->> 'name' as key, avg(payload ->> 'score') from events where event_type='challengeEnd' group by key;`)
+	rows, err := p.db.Query(`select payload ->> 'name' as key, avg(payload ->> 'score') from events where event='challengeEnd' group by key;`)
 	if err != nil {
 		return err
 	}

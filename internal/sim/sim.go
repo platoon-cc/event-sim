@@ -119,7 +119,7 @@ func (s *session_context) addEventT(duration float32, eventType string, payload 
 	s.simTime += duration
 	e := model.Event{
 		Id:        int64(len(s.events) + 1),
-		EventType: eventType,
+		Event:     eventType,
 		UserId:    s.userId,
 		Timestamp: s.startTime.Add(time.Duration(s.simTime) * time.Second).UnixMilli(),
 		Payload:   payload,
