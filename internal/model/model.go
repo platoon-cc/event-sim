@@ -16,25 +16,18 @@ type Project struct {
 	Name string
 }
 
-// type Event struct {
-// 	Params    model.Params `json:"params,omitempty"`
-// 	Event     string       `json:"event"`
-// 	UserId    string       `json:"user_id"`
-// 	Timestamp int64        `json:"timestamp"`
-// }
-
 type Event struct {
-	Params    Params `json:"params"`
-	UserId    string `json:"user_id"`
-	Event     string `json:"event"`
-	Timestamp int64  `json:"timestamp"`
-	Id        int64  `json:"id"`
+	Payload   Payload `json:"payload"`
+	UserId    string  `json:"user_id"`
+	EventType string  `json:"event_type"`
+	Timestamp int64   `json:"timestamp"`
+	Id        int64   `json:"id"`
 }
 
-type Params map[string]any
+type Payload map[string]any
 
 // // Scan implements the Scanner interface.
-func (p *Params) Scan(value any) error {
+func (p *Payload) Scan(value any) error {
 	switch v := value.(type) {
 	case []byte:
 		json.Unmarshal(v, p)
@@ -50,7 +43,7 @@ func (p *Params) Scan(value any) error {
 }
 
 // // Value implements the driver Valuer interface.
-func (p Params) Value() (driver.Value, error) {
+func (p Payload) Value() (driver.Value, error) {
 	b, err := json.Marshal(&p)
 	if err != nil {
 		return nil, err

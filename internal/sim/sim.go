@@ -9,13 +9,6 @@ import (
 	"github.com/platoon-cc/platoon-cli/internal/model"
 )
 
-// type Event struct {
-// 	Params    model.Params `json:"params,omitempty"`
-// 	Event     string       `json:"event"`
-// 	UserId    string       `json:"user_id"`
-// 	Timestamp int64        `json:"timestamp"`
-// }
-
 type choose_tier struct {
 	data   any
 	weight int
@@ -115,21 +108,21 @@ type session_context struct {
 	bucket    int
 }
 
-func (s *session_context) addEvent(eventType string, params model.Params) {
-	s.addEventT(5+rand.Float32()*30.0, eventType, params)
+func (s *session_context) addEvent(eventType string, payload model.Payload) {
+	s.addEventT(5+rand.Float32()*30.0, eventType, payload)
 }
 
-func (s *session_context) addEventT(duration float32, eventType string, params model.Params) {
+func (s *session_context) addEventT(duration float32, eventType string, payload model.Payload) {
 	if eventType == "$uiScreen" {
 		return
 	}
 	s.simTime += duration
 	e := model.Event{
 		Id:        int64(len(s.events) + 1),
-		Event:     eventType,
+		EventType: eventType,
 		UserId:    s.userId,
 		Timestamp: s.startTime.Add(time.Duration(s.simTime) * time.Second).UnixMilli(),
-		Params:    params,
+		Payload:   payload,
 	}
 
 	s.events = append(s.events, e)
@@ -137,7 +130,7 @@ func (s *session_context) addEventT(duration float32, eventType string, params m
 
 func (s *session_context) sim_identify() {
 	paymentTier := choose(s.bucket, payment_tiers)
-	s.addEvent("$identify", model.Params{
+	s.addEvent("$identify", model.Payload{
 		"name":         "kneehat",
 		"payment_tier": paymentTier,
 	})
@@ -145,15 +138,15 @@ func (s *session_context) sim_identify() {
 
 func (s *session_context) sim_settings() {
 	if rand.IntN(100) < 30 {
-		s.addEvent("$uiScreen", model.Params{
+		s.addEvent("$uiScreen", model.Payload{
 			"name": "settings",
 			"tab":  "game config",
 		})
-		s.addEvent("$uiScreen", model.Params{
+		s.addEvent("$uiScreen", model.Payload{
 			"name": "settings",
 			"tab":  "controls",
 		})
-		s.addEvent("$uiScreen", model.Params{
+		s.addEvent("$uiScreen", model.Payload{
 			"name": "welcome",
 		})
 	}
@@ -162,17 +155,17 @@ func (s *session_context) sim_settings() {
 func (s *session_context) sim_tutorial() {
 	if rand.IntN(100) < 10 {
 		s.addEvent("$tutorialBegin", nil)
-		s.addEvent("$tutorialStep", model.Params{
+		s.addEvent("$tutorialStep", model.Payload{
 			"step": 1,
 		})
-		s.addEvent("$tutorialStep", model.Params{
+		s.addEvent("$tutorialStep", model.Payload{
 			"step": 2,
 		})
-		s.addEvent("$tutorialStep", model.Params{
+		s.addEvent("$tutorialStep", model.Payload{
 			"step": 3,
 		})
 		s.addEvent("$tutorialEnd", nil)
-		s.addEvent("$uiScreen", model.Params{
+		s.addEvent("$uiScreen", model.Payload{
 			"name": "welcome",
 		})
 	}
@@ -181,14 +174,14 @@ func (s *session_context) sim_tutorial() {
 func (s *session_context) sim_customise(homeScreen string) {
 	if rand.IntN(100) < 30 {
 		// sim the character select screen
-		s.addEvent("$uiScreen", model.Params{
+		s.addEvent("$uiScreen", model.Payload{
 			"name": "customise",
 		})
-		s.addEvent("$uiScreen", model.Params{
+		s.addEvent("$uiScreen", model.Payload{
 			"name": "change character",
 			"tab":  "regular characters",
 		})
-		s.addEvent("$uiScreen", model.Params{
+		s.addEvent("$uiScreen", model.Payload{
 			"name": homeScreen,
 		})
 	}
@@ -200,13 +193,13 @@ func (s *session_context) sim_game_battle_arena(homeScreen string) {
 	_type := chooseRand(battle_arena)
 	length := rand.IntN(4)*2 + 1
 
-	s.addEvent("$uiScreen", model.Params{
+	s.addEvent("$uiScreen", model.Payload{
 		"name": "game mode",
 	})
-	s.addEvent("$uiScreen", model.Params{
+	s.addEvent("$uiScreen", model.Payload{
 		"name": homeScreen,
 	})
-	s.addEvent("$gameBegin", model.Params{
+	s.addEvent("$gameBegin", model.Payload{
 		"type":   _type,
 		"length": length,
 	})
@@ -215,7 +208,7 @@ func (s *session_context) sim_game_battle_arena(homeScreen string) {
 
 	for i := 0; i < length; i++ {
 		location := chooseRand(locations)
-		s.addEventT(3, "levelBegin", model.Params{
+		s.addEventT(3, "levelBegin", model.Payload{
 			"name": location,
 		})
 
@@ -242,7 +235,7 @@ func (s *session_context) sim_game_battle_arena(homeScreen string) {
 			// banana = append(banana, numBanana)
 		}
 
-		s.addEventT(30+rand.Float32()*30, "levelEnd", model.Params{
+		s.addEventT(30+rand.Float32()*30, "levelEnd", model.Payload{
 			"player": player,
 			"score":  score,
 			// "death":  death,
@@ -251,7 +244,7 @@ func (s *session_context) sim_game_battle_arena(homeScreen string) {
 	}
 
 	s.addEventT(1, "$gameEnd", nil)
-	s.addEvent("$uiScreen", model.Params{
+	s.addEvent("$uiScreen", model.Payload{
 		"name": homeScreen,
 	})
 }
@@ -261,16 +254,16 @@ func (s *session_context) sim_challenge(homeScreen string) {
 
 	score := rand.IntN(chal.scoreHigh-chal.scoreLow) + chal.scoreLow
 
-	s.addEventT(1, "challengeBegin", model.Params{})
+	s.addEventT(1, "challengeBegin", model.Payload{})
 
-	s.addEventT(30, "challengeEnd", model.Params{
+	s.addEventT(30, "challengeEnd", model.Payload{
 		"guid":  chal.guid,
 		"name":  chal.challenge,
 		"sort":  chal.winCondition,
 		"score": score,
 	})
 
-	s.addEvent("$uiScreen", model.Params{
+	s.addEvent("$uiScreen", model.Payload{
 		"name": homeScreen,
 	})
 
@@ -307,7 +300,7 @@ func (s *session_context) sim_challenge(homeScreen string) {
 }
 
 func (s *session_context) sim_home() {
-	s.addEvent("$uiScreen", model.Params{
+	s.addEvent("$uiScreen", model.Payload{
 		"name": "home",
 	})
 
@@ -324,20 +317,20 @@ func (s *session_context) sim_home() {
 		// }
 
 	default:
-		s.addEvent("$uiScreen", model.Params{
+		s.addEvent("$uiScreen", model.Payload{
 			"name": "play online",
 		})
-		s.addEvent("$uiScreen", model.Params{
+		s.addEvent("$uiScreen", model.Payload{
 			"name": "create lobby",
 		})
-		s.addEvent("$uiScreen", model.Params{
+		s.addEvent("$uiScreen", model.Payload{
 			"name": "al's imports",
 		})
 		numGames := rand.IntN(4) + 1
 		for i := 0; i < numGames; i++ {
 			s.sim_game_battle_arena("al's imports")
 		}
-		s.addEvent("$uiScreen", model.Params{
+		s.addEvent("$uiScreen", model.Payload{
 			"name": "home",
 		})
 	}
@@ -354,12 +347,12 @@ func newSession(userId int, startTime time.Time) session_context {
 
 func (s *session_context) begin() {
 	s.sim_identify()
-	s.addEvent("$sessionBegin", model.Params{
+	s.addEvent("$sessionBegin", model.Payload{
 		"branch":  "developer",
 		"vendor":  "steam",
 		"version": "0.1.6669",
 	})
-	s.addEvent("$uiScreen", model.Params{
+	s.addEvent("$uiScreen", model.Payload{
 		"name": "welcome",
 	})
 }
