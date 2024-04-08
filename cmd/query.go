@@ -32,7 +32,7 @@ func init() {
 				return err
 			}
 			defer processor.Close()
-			return processor.Query()
+			return processor.Query(`select payload ->> 'name' as key, avg(payload ->> 'score') from events where event='challengeEnd' group by key;`)
 		},
 	})
 

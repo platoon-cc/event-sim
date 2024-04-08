@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS events (
 type Processor struct {
 	db          *sql.DB
 	insert_stmt *sql.Stmt
+	ingest_stmt *sql.Stmt
 	key         string
 }
 
@@ -75,6 +76,11 @@ func New(key string) (*Processor, error) {
 	p.db = db
 
 	p.insert_stmt, err = p.db.Prepare(`INSERT INTO events (id,event,user_id,timestamp,payload) VALUES (?,?,?,?,?)`)
+	if err != nil {
+		return nil, err
+	}
+
+	p.ingest_stmt, err = p.db.Prepare(`INSERT INTO events (event,user_id,timestamp,payload) VALUES (?,?,?,?)`)
 	if err != nil {
 		return nil, err
 	}
@@ -98,8 +104,17 @@ func (p *Processor) StoreEvents(events []model.Event, idOffset int64) error {
 	return nil
 }
 
-func (p *Processor) Query() error {
-	rows, err := p.db.Query(`select payload ->> 'name' as key, avg(payload ->> 'score') from events where event='challengeEnd' group by key;`)
+func (p *Processor) IngestEvent(e model.Event) error {
+	t := time.UnixMilli(e.Timestamp).Format("2006/01/02 15:04")
+	fmt.Printf("Ingesting: %s (%s) \tuser:%s \tpayload:%v\n", e.Event, t, e.UserId, e.Payload)
+	if _, err := p.ingest_stmt.Exec(e.Event, e.UserId, e.Timestamp, e.Payload); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *Processor) Query(q string) error {
+	rows, err := p.db.Query(q)
 	if err != nil {
 		return err
 	}
