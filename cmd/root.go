@@ -12,13 +12,6 @@ var rootCmd = &cobra.Command{
 	Use: "platoon-cli",
 }
 
-var versionCmd = &cobra.Command{
-	Use: "version",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Platoon CLI v0.0.2 -- HEAD")
-	},
-}
-
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -29,5 +22,4 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(settings.Config)
 	cobra.OnFinalize(settings.Save)
-	rootCmd.AddCommand(versionCmd)
 }

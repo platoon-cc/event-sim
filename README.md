@@ -30,3 +30,7 @@ any events sent from your integration will be ingested into a local sqlite datab
 ## Querying
 
 There are a few built-in queries. Run `platoon-cli query` to see a list - and make sure to pass the `--local` flag to run against locally gathered events.
+
+## Building/Releasing
+
+* Update the version `go run tools > cmd/.version`

@@ -62,6 +62,7 @@ func init() {
 			return nil
 		},
 	})
+
 	queryCmd.AddCommand(&cobra.Command{
 		Use:   "challengeScores",
 		Short: "Clodhopper-specific challenges",

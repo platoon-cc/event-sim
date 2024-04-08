@@ -7,3 +7,7 @@ import (
 func main() {
 	cmd.Execute()
 }
+
+func Fred() string {
+	return "fred"
+}
