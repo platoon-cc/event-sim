@@ -17,11 +17,11 @@ type Project struct {
 }
 
 type Event struct {
-	Payload   Payload `json:"payload"`
-	UserId    string  `json:"user_id"`
-	Event     string  `json:"event"`
-	Timestamp int64   `json:"timestamp"`
-	Id        int64   `json:"id"`
+	Payload   Payload `json:"payload" db:"payload"`
+	UserId    string  `json:"user_id" db:"user_id"`
+	Event     string  `json:"event" db:"event"`
+	Timestamp int64   `json:"timestamp" db:"timestamp"`
+	Id        int64   `json:"id" db:"id"`
 }
 
 type Payload map[string]any

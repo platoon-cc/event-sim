@@ -15,7 +15,7 @@ var rootCmd = &cobra.Command{
 var versionCmd = &cobra.Command{
 	Use: "version",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Platoon CLI v0.0.1 -- HEAD")
+		fmt.Println("Platoon CLI v0.0.2 -- HEAD")
 	},
 }
 

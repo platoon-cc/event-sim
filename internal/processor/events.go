@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
+	"github.com/blockloop/scan/v2"
 	"github.com/platoon-cc/platoon-cli/internal/model"
 	_ "modernc.org/sqlite"
 )
@@ -57,10 +59,9 @@ CREATE TABLE IF NOT EXISTS events (
 }
 
 type Processor struct {
-	db          *sql.DB
-	insert_stmt *sql.Stmt
-	ingest_stmt *sql.Stmt
-	key         string
+	db    *sql.DB
+	key   string
+	mutex sync.RWMutex
 }
 
 func New(key string) (*Processor, error) {
@@ -75,16 +76,6 @@ func New(key string) (*Processor, error) {
 
 	p.db = db
 
-	p.insert_stmt, err = p.db.Prepare(`INSERT INTO events (id,event,user_id,timestamp,payload) VALUES (?,?,?,?,?)`)
-	if err != nil {
-		return nil, err
-	}
-
-	p.ingest_stmt, err = p.db.Prepare(`INSERT INTO events (event,user_id,timestamp,payload) VALUES (?,?,?,?)`)
-	if err != nil {
-		return nil, err
-	}
-
 	return p, nil
 }
 
@@ -93,41 +84,39 @@ func (p *Processor) Close() {
 }
 
 func (p *Processor) StoreEvents(events []model.Event, idOffset int64) error {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	for _, e := range events {
 		eventId := idOffset + e.Id
 		t := time.UnixMilli(e.Timestamp).Format("2006/01/02 15:04")
-		fmt.Printf("%d %s %s \t%s \t%v\n", eventId, t, e.UserId, e.Event, e.Payload)
-		if _, err := p.insert_stmt.Exec(eventId, e.Event, e.UserId, e.Timestamp, e.Payload); err != nil {
+		if _, err := p.db.Exec(`INSERT INTO events (id,event,user_id,timestamp,payload) VALUES (?,?,?,?,?)`, eventId, e.Event, e.UserId, e.Timestamp, e.Payload); err != nil {
 			return err
 		}
+		fmt.Printf("%d %s %s \t%s \t%v\n", eventId, t, e.UserId, e.Event, e.Payload)
 	}
 	return nil
 }
 
 func (p *Processor) IngestEvent(e model.Event) error {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	t := time.UnixMilli(e.Timestamp).Format("2006/01/02 15:04")
-	fmt.Printf("Ingesting: %s (%s) \tuser:%s \tpayload:%v\n", e.Event, t, e.UserId, e.Payload)
-	if _, err := p.ingest_stmt.Exec(e.Event, e.UserId, e.Timestamp, e.Payload); err != nil {
+	if _, err := p.db.Exec(`INSERT INTO events (event,user_id,timestamp,payload) VALUES (?,?,?,?)`, e.Event, e.UserId, e.Timestamp, e.Payload); err != nil {
 		return err
 	}
+	fmt.Printf("Ingesting: %s (%s) \tuser:%s \tpayload:%v\n", e.Event, t, e.UserId, e.Payload)
+
 	return nil
 }
 
-func (p *Processor) Query(q string) error {
+func (p *Processor) Query(q string, res any) error {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
 	rows, err := p.db.Query(q)
 	if err != nil {
 		return err
 	}
-
-	for rows.Next() {
-		var id string
-		var score float32
-		if err := rows.Scan(&id, &score); err != nil {
-			return err
-		}
-		fmt.Printf("%s - %f\n", id, score)
-	}
-	return nil
+	return scan.Rows(res, rows)
 }
 
 func (p *Processor) GetPeakEventId() (int64, error) {
