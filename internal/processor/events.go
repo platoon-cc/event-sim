@@ -1,14 +1,16 @@
 package processor
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
+	"text/tabwriter"
 	"time"
 
-	"github.com/blockloop/scan/v2"
 	"github.com/platoon-cc/platoon-cli/internal/model"
 	_ "modernc.org/sqlite"
 )
@@ -109,14 +111,40 @@ func (p *Processor) IngestEvent(e model.Event) error {
 	return nil
 }
 
-func (p *Processor) Query(q string, res any) error {
+func (p *Processor) Query2(q string) error {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 	rows, err := p.db.Query(q)
 	if err != nil {
 		return err
 	}
-	return scan.Rows(res, rows)
+
+	defer rows.Close()
+
+	cols, _ := rows.Columns()
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 2, 1, ' ', 0)
+	defer w.Flush()
+
+	sep := []byte("\t")
+	newLine := []byte("\n")
+
+	w.Write([]byte(strings.Join(cols, "\t") + "\n"))
+
+	row := make([][]byte, len(cols))
+	rowPtr := make([]any, len(cols))
+	for i := range row {
+		rowPtr[i] = &row[i]
+	}
+
+	for rows.Next() {
+		_ = rows.Scan(rowPtr...)
+
+		w.Write(bytes.Join(row, sep))
+		w.Write(newLine)
+	}
+
+	return nil
 }
 
 func (p *Processor) GetPeakEventId() (int64, error) {

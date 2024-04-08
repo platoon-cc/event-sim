@@ -33,4 +33,10 @@ There are a few built-in queries. Run `platoon-cli query` to see a list - and ma
 
 ## Building/Releasing
 
-* Update the version `go run tools > cmd/.version`
+* Update the version 
+```bash
+go run tools/update_version.go
+git commit ...
+git push ...
+./tools/push_tag.sh
+```

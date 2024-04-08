@@ -1,16 +1,12 @@
 package cmd
 
 import (
-	"fmt"
-	"time"
-
-	"github.com/platoon-cc/platoon-cli/internal/model"
 	"github.com/platoon-cc/platoon-cli/internal/processor"
 	"github.com/platoon-cc/platoon-cli/internal/settings"
 	"github.com/spf13/cobra"
 )
 
-func common(cmd *cobra.Command, query string, res any) error {
+func common(cmd *cobra.Command, query string) error {
 	projectId := "local"
 	isLocal, err := cmd.Flags().GetBool("local")
 	if err != nil {
@@ -28,12 +24,21 @@ func common(cmd *cobra.Command, query string, res any) error {
 		return err
 	}
 	defer processor.Close()
-	return processor.Query(query, res)
+	return processor.Query2(query)
 }
 
 func init() {
 	queryCmd := &cobra.Command{
-		Use: "query",
+		Use:   "query",
+		Short: "freeform query",
+		Args:  cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := common(cmd, args[0]); err != nil {
+				return err
+			}
+
+			return nil
+		},
 	}
 
 	rootCmd.AddCommand(queryCmd)
@@ -48,15 +53,8 @@ func init() {
 		Use:   "list",
 		Short: "List out all events in order",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			res := []model.Event{}
-
-			if err := common(cmd, `select * from events;`, &res); err != nil {
+			if err := common(cmd, `select * from events;`); err != nil {
 				return err
-			}
-
-			for _, v := range res {
-				t := time.UnixMilli(v.Timestamp).Format("2006/01/02 15:04")
-				fmt.Printf("%d %s \t%s \t%s \t%+v\n", v.Id, t, v.Event, v.UserId, v.Payload)
 			}
 
 			return nil
@@ -67,19 +65,9 @@ func init() {
 		Use:   "challengeScores",
 		Short: "Clodhopper-specific challenges",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			res := []struct {
-				Key   string
-				Score float32
-			}{}
-
-			if err := common(cmd, `select payload ->> 'name' as Key, avg(payload ->> 'score') as Score from events where event='challengeEnd' group by Key;`, &res); err != nil {
+			if err := common(cmd, `select payload ->> 'name' as Key, avg(payload ->> 'score') as Score from events where event='challengeEnd' group by Key;`); err != nil {
 				return err
 			}
-
-			for _, v := range res {
-				fmt.Printf("%s - %f\n", v.Key, v.Score)
-			}
-
 			return nil
 		},
 	})

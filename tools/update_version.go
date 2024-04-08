@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -24,6 +25,18 @@ func main() {
 		log.Fatalf("failed to parse git output: %v", err)
 	}
 
-	// The current commit isn't the one we're about to commit.
-	fmt.Printf("0.0.%d", count+1)
+	newVers := fmt.Sprintf("0.0.%d", count+1)
+
+	verFile, err := os.Create("cmd/.version")
+	if err != nil {
+		log.Fatalf("failed to parse git output: %v", err)
+	}
+
+	if _, err := verFile.WriteString(newVers); err != nil {
+		log.Fatalf("failed to parse git output: %v", err)
+	}
+
+	if err := verFile.Close(); err != nil {
+		log.Fatalf("failed to parse git output: %v", err)
+	}
 }
