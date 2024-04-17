@@ -68,19 +68,27 @@ func ClearCache(key string) {
 }
 
 func GetActive(key string) (string, error) {
-	val := Konfig.Get("active." + key)
-	if val == nil {
-		return "", ErrNotFound
-	}
-	return val.(string), nil
+	return _get("active", key)
 }
 
 func SetActive(key string, value string) {
-	Konfig.Set("active."+key, value)
+	_set("active", key, value)
 }
 
 func ClearActive(key string) {
-	Konfig.Delete("active." + key)
+	_clear("active", key)
+}
+
+func GetAuth(key string) (string, error) {
+	return _get("auth", key)
+}
+
+func SetAuth(key string, value string) {
+	_set("auth", key, value)
+}
+
+func ClearAuth(key string) {
+	_clear("auth", key)
 }
 
 func Save() {
@@ -88,10 +96,18 @@ func Save() {
 	os.WriteFile(settingsFile, b, 0755)
 }
 
-func GetAuthToken() string {
-	return Konfig.String("auth.token")
+func _get(scope string, key string) (string, error) {
+	val := Konfig.Get(scope + "." + key)
+	if val == nil {
+		return "", ErrNotFound
+	}
+	return val.(string), nil
 }
 
-func SetAuthToken(token string) {
-	Konfig.Set("auth.token", token)
+func _set(scope string, key string, value string) {
+	Konfig.Set(scope+"."+key, value)
+}
+
+func _clear(scope string, key string) {
+	Konfig.Delete(scope + "." + key)
 }

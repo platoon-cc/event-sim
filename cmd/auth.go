@@ -12,46 +12,60 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var authCmd = &cobra.Command{
-	Use: "auth",
-}
-
-var loginCmd = &cobra.Command{
-	Use: "login",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return login()
-	},
-}
-
 func init() {
+	authCmd := &cobra.Command{
+		Use:   "auth",
+		Short: "For connecting with the Platoon backend",
+	}
+
+	authCmd.PersistentFlags().BoolP("debug", "d", false, "connect to a local debug server")
+	authCmd.AddCommand(&cobra.Command{
+		Use:   "login",
+		Short: "Connect to the backend",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			callback, err := newServer()
+			if err != nil {
+				return err
+			}
+
+			server := "https://platoon.cc"
+			isDebug, err := cmd.Flags().GetBool("debug")
+			if err != nil {
+				return err
+			}
+			if isDebug {
+				server = "http://pl.localhost:9999"
+			}
+
+			route := server + "/app/login"
+
+			url := fmt.Sprintf("%s?redirect=true&hash=%s&port=%d", route, callback.Hash, callback.Port)
+			if err := browser.OpenURL(url); err != nil {
+				return err
+			}
+
+			fmt.Println("Opening your browser at:")
+			fmt.Println(url)
+			fmt.Println("Waiting for authentication...")
+			jwt := callback.Result()
+
+			settings.SetAuth("server", server)
+			settings.SetAuth("token", jwt)
+			return nil
+		},
+	})
+
+	authCmd.AddCommand(&cobra.Command{
+		Use:   "logout",
+		Short: "Disconnect from the backend",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			settings.ClearAuth("server")
+			settings.ClearAuth("token")
+			return nil
+		},
+	})
+
 	rootCmd.AddCommand(authCmd)
-
-	authCmd.AddCommand(loginCmd)
-}
-
-func login() error {
-	// check whether we are already logged in
-	fmt.Println("Auth Login")
-
-	callback, err := newServer()
-	if err != nil {
-		return err
-	}
-
-	route := "http://pl.localhost:9999/app/login"
-
-	url := fmt.Sprintf("%s?redirect=true&hash=%s&port=%d", route, callback.Hash, callback.Port)
-	if err := browser.OpenURL(url); err != nil {
-		return err
-	}
-
-	fmt.Println("Opening your browser at:")
-	fmt.Println(url)
-	fmt.Println("Waiting for authentication...")
-	jwt := callback.Result()
-
-	settings.SetAuthToken(jwt)
-	return nil
 }
 
 type authServer struct {

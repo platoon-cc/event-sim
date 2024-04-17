@@ -17,7 +17,8 @@ type SimRun struct {
 
 func init() {
 	parentCmd := &cobra.Command{
-		Use: "sim",
+		Use:   "sim",
+		Short: "Interact with the event simulator. Only currently works for Clodhoppers",
 	}
 
 	rootCmd.AddCommand(parentCmd)
@@ -83,7 +84,10 @@ func init() {
 				return err
 			}
 
-			platoon := client.New()
+			platoon, err := client.New()
+			if err != nil {
+				return err
+			}
 			for _, r := range run.events {
 				err := platoon.PostSimEvents(r)
 				if err != nil {

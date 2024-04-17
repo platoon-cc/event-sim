@@ -22,14 +22,21 @@ type Client struct {
 	publicToken  string
 }
 
-func New() *Client {
-	token := settings.GetAuthToken()
-	c := &Client{
-		privateToken: token,
-		url:          "http://pl.localhost:9999",
+func New() (*Client, error) {
+	c := &Client{}
+	var err error
+
+	c.url, err = settings.GetAuth("server")
+	if err != nil {
+		return nil, err
 	}
 
-	return c
+	c.privateToken, err = settings.GetAuth("token")
+	if err != nil {
+		return nil, err
+	}
+
+	return c, nil
 }
 
 func (c *Client) GetTeamList() ([]model.Team, error) {
@@ -163,6 +170,9 @@ func (c *Client) call(verb string, endpoint string, body io.Reader, query string
 		return nil, res.StatusCode, err
 	}
 
+	if res.StatusCode == 401 {
+		return nil, res.StatusCode, fmt.Errorf("auth error. Please log in: `platoon-cli auth login`")
+	}
 	if res.StatusCode >= 200 && res.StatusCode < 300 {
 		return resp, res.StatusCode, nil
 	}

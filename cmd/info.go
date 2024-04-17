@@ -10,7 +10,7 @@ import (
 func init() {
 	infoCmd := &cobra.Command{
 		Use:   "info",
-		Short: "output directory details",
+		Short: "Output directory details",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir, err := os.UserConfigDir()
 			if err != nil {

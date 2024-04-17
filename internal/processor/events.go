@@ -111,7 +111,7 @@ func (p *Processor) IngestEvent(e model.Event) error {
 	return nil
 }
 
-func (p *Processor) Query2(q string) error {
+func (p *Processor) Query(q string) error {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 	rows, err := p.db.Query(q)

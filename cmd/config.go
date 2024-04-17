@@ -9,16 +9,15 @@ import (
 
 func init() {
 	configCmd := &cobra.Command{
-		Use: "config",
-	}
-
-	rootCmd.AddCommand(configCmd)
-	configCmd.AddCommand(&cobra.Command{
-		Use: "all",
+		Use:   "config",
+		Short: "Choose which team and proejct you wish to connect to",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			activeTeam, _ := settings.GetActive("team")
 
-			platoon := client.New()
+			platoon, err := client.New()
+			if err != nil {
+				return err
+			}
 			teams, err := platoon.GetTeamList()
 			if err != nil {
 				return err
@@ -54,5 +53,7 @@ func init() {
 					settings.SetActive("project", i.Key)
 				})
 		},
-	})
+	}
+
+	rootCmd.AddCommand(configCmd)
 }

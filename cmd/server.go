@@ -15,7 +15,7 @@ import (
 func init() {
 	serverCmd := &cobra.Command{
 		Use:   "server",
-		Short: "run a test server for prototyping event ingestion",
+		Short: "Run a test server for prototyping event ingestion",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			s := server.New()
 

@@ -24,13 +24,13 @@ func common(cmd *cobra.Command, query string) error {
 		return err
 	}
 	defer processor.Close()
-	return processor.Query2(query)
+	return processor.Query(query)
 }
 
 func init() {
 	queryCmd := &cobra.Command{
 		Use:   "query",
-		Short: "freeform query",
+		Short: "Freeform query",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := common(cmd, args[0]); err != nil {
@@ -40,14 +40,7 @@ func init() {
 			return nil
 		},
 	}
-
 	rootCmd.AddCommand(queryCmd)
-	// queryCmd.AddCommand(&cobra.Command{
-	// 	Use: "dump",
-	// 	RunE: func(cmd *cobra.Command, args []string) error {
-	// 		return common(cmd, args, `select *payload ->> 'name' as key, avg(payload ->> 'score') from events where event='challengeEnd' group by key;`)
-	// 	},
-	// })
 
 	queryCmd.AddCommand(&cobra.Command{
 		Use:   "list",

@@ -11,7 +11,8 @@ import (
 var version string
 
 var versionCmd = &cobra.Command{
-	Use: "version",
+	Use:   "version",
+	Short: "Report the current version of platoon-cli",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("Platoon CLI %s\n", "v"+version)
 	},

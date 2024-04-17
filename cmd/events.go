@@ -9,12 +9,14 @@ import (
 
 func init() {
 	eventsCmd := &cobra.Command{
-		Use: "events",
+		Use:   "events",
+		Short: "Interact with the stored events on the backend",
 	}
 
 	rootCmd.AddCommand(eventsCmd)
 	eventsCmd.AddCommand(&cobra.Command{
-		Use: "ingest",
+		Use:   "ingest",
+		Short: "Pull all the latest events down into a local database for querying",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			projectId, err := settings.GetActive("project")
 			if err != nil {
@@ -31,7 +33,10 @@ func init() {
 				return err
 			}
 
-			platoon := client.New()
+			platoon, err := client.New()
+			if err != nil {
+				return err
+			}
 			events, err := platoon.GetEvents(projectId, eventId)
 			if err != nil {
 				return err
