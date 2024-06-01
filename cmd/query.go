@@ -44,9 +44,9 @@ func init() {
 
 	queryCmd.AddCommand(&cobra.Command{
 		Use:   "list",
-		Short: "List out all events in order",
+		Short: "List out all event in order",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := common(cmd, `select * from events;`); err != nil {
+			if err := common(cmd, `select * from event;`); err != nil {
 				return err
 			}
 
@@ -55,10 +55,32 @@ func init() {
 	})
 
 	queryCmd.AddCommand(&cobra.Command{
+		Use:   "dau",
+		Short: "Daily Active Users",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := common(cmd, `select date(timestamp/1000, 'unixepoch') as date, count(distinct user_id) as user from event where event ='$sessionBegin' group by date;`); err != nil {
+				return err
+			}
+			return nil
+		},
+	})
+
+	queryCmd.AddCommand(&cobra.Command{
+		Use:   "mau",
+		Short: "Monthly Active Users",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := common(cmd, `select count(distinct user_id) as user from event where event = '$sessionBegin' and (unixepoch()-timestamp/1000) < (60*60*24*30);`); err != nil {
+				return err
+			}
+			return nil
+		},
+	})
+
+	queryCmd.AddCommand(&cobra.Command{
 		Use:   "challengeScores",
 		Short: "Clodhopper-specific challenges",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := common(cmd, `select payload ->> 'name' as Key, avg(payload ->> 'score') as Score from events where event='challengeEnd' group by Key;`); err != nil {
+			if err := common(cmd, `select payload ->> 'name' as Key, avg(payload ->> 'score') as Score from event where event='challengeEnd' group by Key;`); err != nil {
 				return err
 			}
 			return nil
@@ -67,3 +89,10 @@ func init() {
 
 	queryCmd.PersistentFlags().BoolP("local", "l", false, "query local database rather than project")
 }
+
+// identifying the pairs of sessions/challenges etc
+// select user_id, (timestamp-prev)as duration from (select *,lag(timestamp, 1) over() prev from event where event like 'challenge%') wher
+// e event like '%End';
+
+// hourly/daily/weekly active users
+// select count(distinct user_id), (timestamp/3600000) as hour, datetime(timestamp/1000, 'unixepoch') from event where event ='$sessionBegin' group by hour;

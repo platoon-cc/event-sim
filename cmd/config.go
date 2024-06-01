@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/platoon-cc/platoon-cli/internal/client"
 	"github.com/platoon-cc/platoon-cli/internal/settings"
 	"github.com/platoon-cc/platoon-cli/internal/ui"
@@ -10,7 +12,7 @@ import (
 func init() {
 	configCmd := &cobra.Command{
 		Use:   "config",
-		Short: "Choose which team and proejct you wish to connect to",
+		Short: "Choose which team and project you wish to connect to",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			activeTeam, _ := settings.GetActive("team")
 
@@ -18,6 +20,11 @@ func init() {
 			if err != nil {
 				return err
 			}
+
+			// force the cache to be clear
+			settings.ClearCache("team")
+			settings.ClearCache("project")
+
 			teams, err := platoon.GetTeamList()
 			if err != nil {
 				return err
@@ -30,9 +37,11 @@ func init() {
 
 			err = list.Run(
 				func(i ui.ListItem) {
-					settings.ClearCache("project")
-					settings.ClearActive("project")
-					settings.SetActive("team", i.Key)
+					if i.Key != activeTeam {
+						settings.ClearCache("project")
+						settings.ClearActive("project")
+						settings.SetActive("team", i.Key)
+					}
 				})
 			if err != nil {
 				return err
@@ -45,12 +54,15 @@ func init() {
 			}
 			list = ui.NewList("Select Active Project")
 			for _, t := range projects {
+				fmt.Printf("active: %s - this: %s\n", activeProject, t.Id)
 				list.AddItem(t.Id, t.Name, t.Id == activeProject)
 			}
 
 			return list.Run(
 				func(i ui.ListItem) {
-					settings.SetActive("project", i.Key)
+					if i.Key != activeProject {
+						settings.SetActive("project", i.Key)
+					}
 				})
 		},
 	}

@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/platoon-cc/platoon-cli/internal/client"
 	"github.com/platoon-cc/platoon-cli/internal/processor"
 	"github.com/platoon-cc/platoon-cli/internal/settings"
@@ -40,6 +42,10 @@ func init() {
 			events, err := platoon.GetEvents(projectId, eventId)
 			if err != nil {
 				return err
+			}
+
+			for i, v := range events {
+				fmt.Printf("event: %d %+v\n", i, v)
 			}
 
 			return processor.StoreEvents(events, 0)

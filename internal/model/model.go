@@ -19,6 +19,7 @@ type Project struct {
 type Event struct {
 	Payload   Payload `json:"payload" db:"payload"`
 	UserId    string  `json:"user_id" db:"user_id"`
+	SessionId string  `json:"session_id" db:"session_id"`
 	Event     string  `json:"event" db:"event"`
 	Timestamp int64   `json:"timestamp" db:"timestamp"`
 	Id        int64   `json:"id" db:"id"`

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"math/rand/v2"
 	"time"
 
 	"github.com/platoon-cc/platoon-cli/internal/client"
@@ -104,8 +105,9 @@ func runSim() (SimRun, error) {
 	run := SimRun{}
 
 	startTime := time.Now()
-	for i := range 10 {
-		events := sim.SimulateSessionForUser(i, startTime)
+	userOffset := rand.IntN(20)
+	for i := range rand.IntN(20) + 1 {
+		events := sim.SimulateSessionForUser(i+userOffset, startTime)
 		run.events = append(run.events, events)
 	}
 	return run, nil

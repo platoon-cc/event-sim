@@ -45,10 +45,11 @@ func openDatabase(key string) (*sql.DB, error) {
 	}
 
 	migrate := `
-CREATE TABLE IF NOT EXISTS events (
+CREATE TABLE IF NOT EXISTS event (
   id INTEGER PRIMARY KEY,
   event TEXT,
   user_id TEXT,
+  session_id TEXT,
   timestamp INTEGER,
   payload JSON
 );`
@@ -91,7 +92,7 @@ func (p *Processor) StoreEvents(events []model.Event, idOffset int64) error {
 	for _, e := range events {
 		eventId := idOffset + e.Id
 		t := time.UnixMilli(e.Timestamp).Format("2006/01/02 15:04")
-		if _, err := p.db.Exec(`INSERT INTO events (id,event,user_id,timestamp,payload) VALUES (?,?,?,?,?)`, eventId, e.Event, e.UserId, e.Timestamp, e.Payload); err != nil {
+		if _, err := p.db.Exec(`INSERT INTO event (id,event,user_id,session_id,timestamp,payload) VALUES (?,?,?,?,?,?)`, eventId, e.Event, e.UserId, e.SessionId, e.Timestamp, e.Payload); err != nil {
 			return err
 		}
 		fmt.Printf("%d %s %s \t%s \t%v\n", eventId, t, e.UserId, e.Event, e.Payload)
@@ -103,7 +104,7 @@ func (p *Processor) IngestEvent(e model.Event) error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	t := time.UnixMilli(e.Timestamp).Format("2006/01/02 15:04")
-	if _, err := p.db.Exec(`INSERT INTO events (event,user_id,timestamp,payload) VALUES (?,?,?,?)`, e.Event, e.UserId, e.Timestamp, e.Payload); err != nil {
+	if _, err := p.db.Exec(`INSERT INTO event (event,user_id,session_id,timestamp,payload) VALUES (?,?,?,?,?)`, e.Event, e.UserId, e.SessionId, e.Timestamp, e.Payload); err != nil {
 		return err
 	}
 	fmt.Printf("Ingesting: %s (%s) \tuser:%s \tpayload:%v\n", e.Event, t, e.UserId, e.Payload)
@@ -148,7 +149,7 @@ func (p *Processor) Query(q string) error {
 }
 
 func (p *Processor) GetPeakEventId() (int64, error) {
-	row := p.db.QueryRow("select max(id) from events;")
+	row := p.db.QueryRow("select max(id) from event;")
 	var res any
 	err := row.Scan(&res)
 	switch res.(type) {
