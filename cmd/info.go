@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/platoon-cc/platoon-cli/internal/settings"
 	"github.com/spf13/cobra"
 )
 
@@ -16,13 +17,19 @@ func init() {
 			if err != nil {
 				return err
 			}
-			fmt.Printf("Config directory: %s\n", dir)
+			fmt.Printf("Config directory: %s/platoon\n", dir)
 
 			dir, err = os.UserCacheDir()
 			if err != nil {
 				return err
 			}
-			fmt.Printf("Database cache directory: %s\n", dir)
+			fmt.Printf("Database cache directory: %s/platoon\n", dir)
+
+			projectId, err := settings.GetActive("project")
+			if err != nil {
+				return err
+			}
+			fmt.Printf("Active project Database: %s/platoon/%s.db\n", dir, projectId)
 			return nil
 		},
 	}
